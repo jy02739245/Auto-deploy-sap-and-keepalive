@@ -24,9 +24,12 @@
 4. **设置Docker容器环境变量(也是在secrets里设置)**
    - 使用固定隧道token部署，请在cloudflare里设置端口为8001：
    - 设置基础环境变量：
-     - UUID(节点uuid)
-     - ARGO_DOMAIN(固定隧道域名,未设置将使用临时隧道)
-     - ARGO_AUTH(固定隧道json或token,未设置将使用临时隧道)
+     - SG_UUID(SG节点uuid)
+     - SG_ARGO_DOMAIN(SG节点固定隧道域名,未设置将使用临时隧道)
+     - SG_ARGO_AUTH(SG节点固定隧道json或token,未设置将使用临时隧道)
+     - US_UUID(US节点uuid)
+     - US_ARGO_DOMAIN(US固定隧道域名,未设置将使用临时隧道)
+     - US_ARGO_AUTH(US节点固定隧道json或token,未设置将使用临时隧道)
      - SUB_PATH(订阅token,未设置默认是sub)
    - 可选环境变量
      - NEZHA_SERVER(v1形式: nezha.xxx.com:8008  v0形式：nezha.xxx.com)
