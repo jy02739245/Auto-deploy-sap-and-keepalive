@@ -25,7 +25,7 @@ on:
         default: ''
 
 env:
-  DOCKER_IMAGE: ghcr.io/eooce/nodejs:main
+  DOCKER_IMAGE: ghcr.io/jy02739245/nodejs:latest
   MEMORY: 512M
 
 jobs:
@@ -86,6 +86,8 @@ jobs:
         cf set-env ${{ env.APP_NAME }} NEZHA_SERVER "${{ secrets.NEZHA_SERVER }}"
         cf set-env ${{ env.APP_NAME }} NEZHA_PORT "${{ secrets.NEZHA_PORT }}"
         cf set-env ${{ env.APP_NAME }} NEZHA_KEY "${{ secrets.NEZHA_KEY }}"
+        cf set-env ${{ env.APP_NAME }} KOMARI_SERVER "${{ secrets.KOMARI_SERVER }}"
+        cf set-env ${{ env.APP_NAME }} KOMARI_KEY "${{ secrets.KOMARI_KEY }}"
         if [ "${{ github.event.inputs.region }}" = "SG" ]; then
            cf set-env ${{ env.APP_NAME }} UUID "${{ secrets.SG_UUID }}"
            cf set-env ${{ env.APP_NAME }} ARGO_DOMAIN "${{ secrets.SG_ARGO_DOMAIN }}"
