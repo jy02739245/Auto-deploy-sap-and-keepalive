@@ -1,7 +1,7 @@
 name: 删除指定区域所有SAP应用
 
 on:
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:  # 手动触发
     inputs:
       region:
         description: '选择要删除应用的区域 (SG 或 US)'
@@ -9,22 +9,25 @@ on:
         default: 'SG'
         type: choice
         options:
-        - SG
-        - US
+          - SG
+          - US
       confirmation:
         description: '请输入 "确认删除" 以确认操作'
         required: true
         type: string
+  repository_dispatch:  # 远程触发
+    types: [delete-sap-apps]
 
 jobs:
   delete-apps:
     runs-on: ubuntu-latest
-    name: Delete Apps from ${{ github.event.inputs.region }}
+    name: Delete Apps from ${{ github.event.inputs.region || github.event.client_payload.region }}
     
     steps:
     - name: 验证确认短语
       run: |
-        if [ "${{ github.event.inputs.confirmation }}" != "确认删除" ]; then
+        CONFIRMATION="${{ github.event.inputs.confirmation || github.event.client_payload.confirmation }}"
+        if [ "$CONFIRMATION" != "确认删除" ]; then
           echo "错误：必须输入 '确认删除' 来确认操作"
           exit 1
         fi
@@ -41,7 +44,8 @@ jobs:
 
     - name: 设置区域相关变量
       run: |
-        if [ "${{ github.event.inputs.region }}" = "SG" ]; then
+        REGION="${{ github.event.inputs.region || github.event.client_payload.region }}"
+        if [ "$REGION" = "SG" ]; then
           echo "CF_API=https://api.cf.ap21.hana.ondemand.com" >> $GITHUB_ENV
           echo "CF_ORG=${{ secrets.SG_ORG }}" >> $GITHUB_ENV
           echo "使用新加坡(SG)区域"
@@ -50,6 +54,7 @@ jobs:
           echo "CF_ORG=${{ secrets.US_ORG }}" >> $GITHUB_ENV
           echo "使用美国(US)区域"
         fi
+        echo "REGION=$REGION" >> $GITHUB_ENV
 
     - name: Login to Cloud Foundry
       run: |
@@ -58,21 +63,18 @@ jobs:
     - name: 获取所有应用
       id: get-apps
       run: |
-        # 获取所有应用名称（跳过前 3 行提示和表头）
         apps=$(cf apps | awk 'NR>3 {print $1}' | grep -v '^$')
         echo "发现的应用:"
         echo "$apps"
         
-        # 检查是否有应用
         if [ -z "$apps" ]; then
-          echo "在区域 ${{ github.event.inputs.region }} 中未找到任何应用"
+          echo "在区域 $REGION 中未找到任何应用"
           echo "has_apps=false" >> $GITHUB_OUTPUT
           exit 0
         else
           echo "has_apps=true" >> $GITHUB_OUTPUT
         fi
-        
-        # 直接输出到 GITHUB_OUTPUT（多行字符串）
+
         echo "apps<<EOF" >> $GITHUB_OUTPUT
         echo "$apps" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
@@ -80,22 +82,20 @@ jobs:
     - name: 删除所有应用
       if: steps.get-apps.outputs.has_apps == 'true'
       run: |
-        # 从上一步获取应用列表
         apps="${{ steps.get-apps.outputs.apps }}"
         
-        echo "正在删除区域 ${{ github.event.inputs.region }} 中的应用:"
+        echo "正在删除区域 $REGION 中的应用:"
         echo "$apps"
         
-        # 删除每个应用
         for app in $apps; do
           echo "正在删除应用: $app"
-          cf delete -f -r "$app"  # -f 强制删除，不需要确认；-r 同时删除关联的路由
+          cf delete -f -r "$app"
           echo "应用 $app 删除成功"
           echo "----------------------------------------"
-          sleep 10  # 每个应用之间等待 10 秒
+          sleep 10
         done
 
     - name: 验证应用已删除
       run: |
-        echo "区域 ${{ github.event.inputs.region }} 中剩余的应用:"
+        echo "区域 $REGION 中剩余的应用:"
         cf apps
